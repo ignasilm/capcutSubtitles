@@ -153,7 +153,6 @@ public class CapcutSubtitle {
                     wordBean = new WordBean(startTimeNode.get(i).asLong(), endTimeNode.get(i).asLong(), textNode.get(i).asText());
                     listaPalabras.add(wordBean);
                 }
-
                 System.out.println(UtilsCapCut.descripcionWordBean(listaPalabras));
 
 
