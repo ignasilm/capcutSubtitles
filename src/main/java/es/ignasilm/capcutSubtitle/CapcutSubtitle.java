@@ -2,12 +2,16 @@ package es.ignasilm.capcutSubtitle;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.ignasilm.capcutSubtitle.domain.WordBean;
+import es.ignasilm.capcutSubtitle.utils.UtilsCapCut;
 import org.apache.commons.cli.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.List;
 
 public class CapcutSubtitle {
 
@@ -136,15 +140,24 @@ public class CapcutSubtitle {
                 //System.out.println(node);
                 //System.out.println(node.get("key").asText());
                 JsonNode wordsNode = node.get("words");
-                for (JsonNode wordNode : wordsNode) {
-                    //el wordNode tiene el siguiente formato: "words": {"end_time": [3074,3074,3374,3374,3906],"start_time": [2481,3074,3074,3374,3374],"text": ["hola"," ","soy"," ","02"]}
-                    //recorremos los arrays de end_time, start_time y text
-                    for (int i = 0; i < ((JsonNode)wordNode.get("end_time")).size(); i++) {
-                        System.out.println("Palabra: " + wordNode.get("text").get(i).asText());
-                        System.out.println("Inicio: " + wordNode.get("start_time").get(i).asText());
-                        System.out.println("Fin: " + wordNode.get("end_time").get(i).asText());
-                    }
+                //el wordsNode tiene el siguiente formato: "words": {"end_time": [3074,3074,3374,3374,3906],"start_time": [2481,3074,3074,3374,3374],"text": ["hola"," ","soy"," ","02"]}
+                //recuperamos los nodos de text, start_time y end_time en varios arrays
+                JsonNode textNode = wordsNode.get("text");
+                JsonNode startTimeNode = wordsNode.get("start_time");
+                JsonNode endTimeNode = wordsNode.get("end_time");
+
+                List<WordBean> listaPalabras = new ArrayList<WordBean>();
+                WordBean wordBean = null;
+
+                for (int i = 0; i < textNode.size(); i++) {
+                    wordBean = new WordBean(startTimeNode.get(i).asLong(), endTimeNode.get(i).asLong(), textNode.get(i).asText());
+                    listaPalabras.add(wordBean);
                 }
+
+                System.out.println(UtilsCapCut.descripcionWordBean(listaPalabras));
+
+
+
             }
 
             System.out.println("Ya está!");
