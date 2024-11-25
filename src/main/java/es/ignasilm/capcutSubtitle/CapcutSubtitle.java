@@ -2,6 +2,8 @@ package es.ignasilm.capcutSubtitle;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import es.ignasilm.capcutSubtitle.domain.CapCutSubtitles;
+import es.ignasilm.capcutSubtitle.domain.Subtitle;
 import es.ignasilm.capcutSubtitle.domain.WordBean;
 import es.ignasilm.capcutSubtitle.utils.UtilsCapCut;
 import org.apache.commons.cli.*;
@@ -10,17 +12,24 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.GregorianCalendar;
 import java.util.List;
 
 public class CapcutSubtitle {
+
+    Logger logger = LoggerFactory.getLogger(CapcutSubtitle.class);
 
     public static void main(String[] args) {
 
         DefaultParser parser = new DefaultParser();
         CommandLine cmdLine = null;
         String fichero = null;
+        String ficheroExport = null;
+        String ficheroImport = null;
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        CapCutSubtitles capcutsubtitles = null;
+        Subtitle subtitle = null;
+        String contenido = null;
+        JsonNode contenidoNode = null;
 
 
         var options = new Options()
@@ -30,34 +39,137 @@ public class CapcutSubtitle {
                         .desc("Fichero de proyecto de Capcut")
                         .argName("fichero")
                         .build())
-//                .addOption(Option.builder("p")
-//                        .longOpt("password")
-//                        .hasArg(true)
-//                        .desc("Password del usuario de Kosin")
-//                        //.required()
-//                        .argName("password")
-//                        .build())
-//                .addOption(Option.builder("u")
-//                        .longOpt("user")
-//                        .hasArg(true)
-//                        .desc("Usuario de conexión a Kosin")
-//                        .argName("user")
-//                        //.required()
-//                        .build())
+                .addOption(Option.builder("e")
+                        .longOpt("extract")
+                        .hasArg(true)
+                        .desc("Extraer los subtitulos al fichero indicado")
+                        //.required()
+                        .argName("extractFile")
+                        .build())
+                .addOption(Option.builder("i")
+                        .longOpt("import")
+                        .hasArg(true)
+                        .desc("Importa los subtitulos del fichero indicado")
+                        .argName("importFile")
+                        //.required()
+                        .build())
                 .addOption("help","Muestra esta información de ayuda");
 
         try {
             cmdLine = parser.parse(options, args);
             if (cmdLine.hasOption('f')) {
                 fichero = cmdLine.getOptionValue('f');
-                System.out.println("Running in verbose mode");
             } else {
                 new HelpFormatter().printHelp("CapcutSubtitles args...", options);
                 System.exit(1);
             }
 
             System.out.println("Vamos allá a corregir los subtitulos");
-            //System.setProperty("webdriver.chrome.driver","C:/Dev/DriverChrome");
+
+            if (cmdLine.hasOption('e')) {
+                ficheroExport = cmdLine.getOptionValue('e');
+                capcutsubtitles = leerFicheroCatCut(fichero);
+                //UtilsCapCut.export2File(capcutsubtitles, ficheroExport);
+//            } else if(cmdLine.hasOption('i')) {
+//                ficheroImport = cmdLine.getOptionValue('e');
+//                CapCutSubtitles importSubtitles = UtilsCapCut.importFile(ficheroImport);
+//                capcutsubtitles = leerFicheroCatCut(fichero);
+//                if (verificaCapCut(capcutsubtitles, importSubtitles)) {
+//                    actualizaCatCut(importSubtitles);
+//                } else {
+//                    System.err.println("El fichero a importar no cumple el formato");
+//                    System.exit(2);
+//                }
+            } else {
+                capcutsubtitles = leerFicheroCatCut(fichero);
+                UtilsCapCut.export(capcutsubtitles);
+            }
+
+            System.out.println("Ya está!");
+
+        } catch (ParseException e) {
+            System.err.println("Error al leer las opciones de linea de comandos " + e.getMessage());
+            new HelpFormatter().printHelp("CapcutSubtitles args...", options);
+        } catch (IOException e) {
+            System.err.println("Error al cargar el documento " + e.getMessage());
+            new HelpFormatter().printHelp("CapcutSubtitles args...", options);
+        }
+
+    }
+
+    private static CapCutSubtitles leerFicheroCatCut(String fichero) throws IOException {
+        String contenido = null;
+        CapCutSubtitles capcutsubtitles = null;
+        JsonNode contenidoNode = null;
+        Subtitle subtitle = null;
+        int orden = 1;
+
+        try {
+            capcutsubtitles = new CapCutSubtitles();
+            capcutsubtitles.setSubtitles(new ArrayList<>());
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(new File(fichero));
+            System.out.println("Documento cargado: " + jsonNode.size());
+
+            //recuperamos el nodo materias de extra_info
+            JsonNode materialsNode = jsonNode.get("materials");
+            //recuperamos el nodo texts de materias
+            JsonNode textsNode = materialsNode.get("texts");
+
+            // y recuperamos el nodo words de cada hijo
+            for (JsonNode node : textsNode) {
+                subtitle = new Subtitle();
+                subtitle.setOrden(orden++);
+                subtitle.setId(node.get("id").textValue());
+
+                contenido = node.get("content").textValue();
+                //convertir a json
+                contenidoNode = objectMapper.readTree(contenido);
+                //recuperamos el nodo text
+                subtitle.setContent(contenidoNode.get("text").asText());
+
+                JsonNode wordsNode = node.get("words");
+                //el wordsNode tiene el siguiente formato: "words": {"end_time": [3074,3074,3374,3374,3906],"start_time": [2481,3074,3074,3374,3374],"text": ["hola"," ","soy"," ","02"]}
+                //recuperamos los nodos de text, start_time y end_time en varios arrays
+                JsonNode textNode = wordsNode.get("text");
+                JsonNode startTimeNode = wordsNode.get("start_time");
+                JsonNode endTimeNode = wordsNode.get("end_time");
+
+                List<WordBean> listaPalabras = new ArrayList<WordBean>();
+                WordBean wordBean = null;
+
+                for (int i = 0; i < textNode.size(); i++) {
+                    wordBean = new WordBean(startTimeNode.get(i).asLong(), endTimeNode.get(i).asLong(), textNode.get(i).asText());
+                    listaPalabras.add(wordBean);
+                }
+                if (startTimeNode != null && !startTimeNode.isEmpty()) {
+                    subtitle.setStart(startTimeNode.get(0).asLong());
+                    subtitle.setEnd(endTimeNode.get(endTimeNode.size() - 1).asLong());
+                } else {
+                    subtitle.setStart(0L);
+                    subtitle.setEnd(0L);
+                }
+                subtitle.setWords(listaPalabras);
+
+                capcutsubtitles.getSubtitles().add(subtitle);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return capcutsubtitles;
+    }
+
+    private static CapCutSubtitles leerFicheroCatCutOriginal(String fichero) throws IOException {
+        String contenido = null;
+        CapCutSubtitles capcutsubtitles = null;
+        JsonNode contenidoNode = null;
+        Subtitle subtitle = null;
+        int orden = 1;
+
+        try {
+            capcutsubtitles = new CapCutSubtitles();
+            capcutsubtitles.setSubtitles(new ArrayList<>());
 
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(new File(fichero));
@@ -134,9 +246,19 @@ public class CapcutSubtitle {
             JsonNode materialsNode = jsonNode.get("materials");
             //recuperamos el nodo texts de materias
             JsonNode textsNode = materialsNode.get("texts");
-            //recorremos todos los hijos de texts
+
             // y recuperamos el nodo words de cada hijo
             for (JsonNode node : textsNode) {
+                subtitle = new Subtitle();
+                subtitle.setOrden(orden++);
+                subtitle.setId(node.get("id").textValue());
+
+                contenido = node.get("content").textValue();
+                //convertir a json
+                contenidoNode = objectMapper.readTree(contenido);
+                //recuperamos el nodo text
+                subtitle.setContent(contenidoNode.get("text").asText());
+
                 //System.out.println(node);
                 //System.out.println(node.get("key").asText());
                 JsonNode wordsNode = node.get("words");
@@ -153,23 +275,23 @@ public class CapcutSubtitle {
                     wordBean = new WordBean(startTimeNode.get(i).asLong(), endTimeNode.get(i).asLong(), textNode.get(i).asText());
                     listaPalabras.add(wordBean);
                 }
-                System.out.println(UtilsCapCut.descripcionWordBean(listaPalabras));
+                if (startTimeNode != null && !startTimeNode.isEmpty()) {
+                    subtitle.setStart(startTimeNode.get(0).asLong());
+                    subtitle.setEnd(endTimeNode.get(endTimeNode.size() - 1).asLong());
+                } else {
+                    subtitle.setStart(0L);
+                    subtitle.setEnd(0L);
+                }
+                subtitle.setWords(listaPalabras);
+                //System.out.println(UtilsCapCut.descripcionWordBean(listaPalabras));
 
-
+                capcutsubtitles.getSubtitles().add(subtitle);
 
             }
-
-            System.out.println("Ya está!");
-
-        } catch (ParseException e) {
-            System.err.println("Error al leer las opciones de linea de comandos " + e.getMessage());
-            new HelpFormatter().printHelp("CapcutSubtitles args...", options);
-        } catch (IOException e) {
-            System.err.println("Error al cargar el documento " + e.getMessage());
-            new HelpFormatter().printHelp("CapcutSubtitles args...", options);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
+        return capcutsubtitles;
     }
-
 
 }
