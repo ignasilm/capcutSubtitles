@@ -5,18 +5,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import es.ignasilm.capcutSubtitle.domain.CapCutSubtitles;
 import es.ignasilm.capcutSubtitle.domain.Subtitle;
 import es.ignasilm.capcutSubtitle.domain.WordBean;
+import es.ignasilm.capcutSubtitle.domain.WordImportedBean;
 import es.ignasilm.capcutSubtitle.utils.UtilsCapCut;
 import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 public class CapcutSubtitle {
 
-    Logger logger = LoggerFactory.getLogger(CapcutSubtitle.class);
+    static Logger log = LoggerFactory.getLogger(CapcutSubtitle.class);
 
     public static void main(String[] args) {
 
@@ -64,38 +69,39 @@ public class CapcutSubtitle {
                 System.exit(1);
             }
 
-            System.out.println("Vamos allá a corregir los subtitulos");
+            log.info("Vamos allá a corregir los subtitulos");
 
             if (cmdLine.hasOption('e')) {
                 ficheroExport = cmdLine.getOptionValue('e');
                 capcutsubtitles = leerFicheroCatCut(fichero);
-                //UtilsCapCut.export2File(capcutsubtitles, ficheroExport);
-//            } else if(cmdLine.hasOption('i')) {
-//                ficheroImport = cmdLine.getOptionValue('e');
-//                CapCutSubtitles importSubtitles = UtilsCapCut.importFile(ficheroImport);
-//                capcutsubtitles = leerFicheroCatCut(fichero);
-//                if (verificaCapCut(capcutsubtitles, importSubtitles)) {
-//                    actualizaCatCut(importSubtitles);
-//                } else {
-//                    System.err.println("El fichero a importar no cumple el formato");
-//                    System.exit(2);
-//                }
+                UtilsCapCut.export2File(capcutsubtitles, ficheroExport);
+            } else if(cmdLine.hasOption('i')) {
+                ficheroImport = cmdLine.getOptionValue('i');
+                Map<String, LinkedHashSet<WordImportedBean>> importSubtitles = UtilsCapCut.importFile(ficheroImport);
+                capcutsubtitles = leerFicheroCatCut(fichero);
+                if (UtilsCapCut.verificaCapCut(capcutsubtitles, importSubtitles)) {
+                    UtilsCapCut.actualizaCatCut(importSubtitles);
+                } else {
+                    System.err.println("El fichero a importar no cumple el formato");
+                    System.exit(2);
+                }
             } else {
                 capcutsubtitles = leerFicheroCatCut(fichero);
                 UtilsCapCut.export(capcutsubtitles);
             }
 
-            System.out.println("Ya está!");
+            log.info("Ya está!");
 
         } catch (ParseException e) {
-            System.err.println("Error al leer las opciones de linea de comandos " + e.getMessage());
+            log.error("Error al leer las opciones de linea de comandos " + e.getMessage());
             new HelpFormatter().printHelp("CapcutSubtitles args...", options);
         } catch (IOException e) {
-            System.err.println("Error al cargar el documento " + e.getMessage());
+            log.error("Error al cargar el documento " + e.getMessage());
             new HelpFormatter().printHelp("CapcutSubtitles args...", options);
         }
 
     }
+
 
     private static CapCutSubtitles leerFicheroCatCut(String fichero) throws IOException {
         String contenido = null;
