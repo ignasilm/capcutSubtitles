@@ -54,15 +54,18 @@ public class UtilsCapCut {
 
     public static List<Object> recordExport(Subtitle subtitle) {
         List<Object> resultado = new ArrayList<Object>();
+        double duracionTotal = subtitle.getEnd().doubleValue() - subtitle.getStart().doubleValue();
+        double duracionPalabra = 0d;
+        double porcentaje = 0d;
         resultado.add(subtitle.getOrden());
         resultado.add(subtitle.getId());
         resultado.add(subtitle.getContent());
-        resultado.add(subtitle.getStart());
-        resultado.add(subtitle.getEnd());
+        resultado.add(duracionTotal);
         for (WordBean wordBean : subtitle.getWords()) {
-            long duracion = wordBean.getEndTime() - wordBean.getStartTime();
+            duracionPalabra = wordBean.getEndTime().doubleValue() - wordBean.getStartTime().doubleValue();
+            porcentaje = Math.round(duracionPalabra*10000d/duracionTotal)/100d;
             resultado.add(wordBean.getText());
-            resultado.add(duracion);
+            resultado.add(porcentaje);
         }
         return resultado;
     }
@@ -139,7 +142,12 @@ public class UtilsCapCut {
         return false;
     }
 
-    public static void actualizaCatCut(Map<String, LinkedHashSet<WordImportedBean>> importSubtitles) {
+    public static void actualizaCatCut(Map<String, LinkedHashSet<WordImportedBean>> importSubtitles, CapCutSubtitles capcutsubtitles) {
 
+        for ( Subtitle subtitle: capcutsubtitles.getSubtitles()){
+            if (importSubtitles.containsKey(subtitle.getId())){
+                log.info("Encontrado");
+            }
+        }
     }
 }

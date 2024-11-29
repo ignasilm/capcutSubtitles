@@ -79,12 +79,7 @@ public class CapcutSubtitle {
                 ficheroImport = cmdLine.getOptionValue('i');
                 Map<String, LinkedHashSet<WordImportedBean>> importSubtitles = UtilsCapCut.importFile(ficheroImport);
                 capcutsubtitles = leerFicheroCatCut(fichero);
-                if (UtilsCapCut.verificaCapCut(capcutsubtitles, importSubtitles)) {
-                    UtilsCapCut.actualizaCatCut(importSubtitles);
-                } else {
-                    System.err.println("El fichero a importar no cumple el formato");
-                    System.exit(2);
-                }
+                UtilsCapCut.actualizaCatCut(importSubtitles, capcutsubtitles);
             } else {
                 capcutsubtitles = leerFicheroCatCut(fichero);
                 UtilsCapCut.export(capcutsubtitles);
