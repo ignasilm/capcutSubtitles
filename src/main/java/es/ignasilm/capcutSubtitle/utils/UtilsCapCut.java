@@ -23,19 +23,6 @@ public class UtilsCapCut {
 
     static Logger log = LoggerFactory.getLogger(UtilsCapCut.class);
 
-    public static String descripcionWordBean(List<WordBean> wordBeans) {
-        StringBuilder resultado = new StringBuilder();
-        for (WordBean wordBean : wordBeans) {
-            long duracion = wordBean.getEndTime() - wordBean.getStartTime();
-            resultado.append(wordBean.getText())
-                     .append(" Inicio: ").append(wordBean.getStartTime())
-                     .append(" Fin: ").append(wordBean.getEndTime())
-                     .append(" Duración: ").append(duracion)
-                     .append("\n");
-        }
-        return resultado.toString();
-    }
-
     public static String lineaExport(Subtitle subtitle) {
         StringBuilder resultado = new StringBuilder();
         resultado.append(subtitle.getOrden()).append(Constants.SEPARADOR)
@@ -48,12 +35,12 @@ public class UtilsCapCut {
             resultado.append(wordBean.getText()).append(Constants.SEPARADOR)
                     .append(duracion).append(Constants.SEPARADOR);
         }
-        resultado.append("\n");
+        //resultado.append("\n");
         return resultado.toString();
     }
 
     public static List<Object> recordExport(Subtitle subtitle) {
-        List<Object> resultado = new ArrayList<Object>();
+        List<Object> resultado = new ArrayList<>();
         double duracionTotal = subtitle.getEnd().doubleValue() - subtitle.getStart().doubleValue();
         double duracionPalabra = 0d;
         double porcentaje = 0d;
@@ -70,12 +57,11 @@ public class UtilsCapCut {
         return resultado;
     }
 
-    public static String export(CapCutSubtitles capcutsubtitles) {
+    public static void export(CapCutSubtitles capcutsubtitles) {
 
         capcutsubtitles.getSubtitles().forEach(linea -> {
-            System.out.print(lineaExport(linea));
+            log.info(lineaExport(linea));
         });
-        return null;
     }
 
     public static void export2File(CapCutSubtitles capCutSubtitles, String exportFile) {
@@ -98,7 +84,6 @@ public class UtilsCapCut {
 
         Map<String, LinkedHashSet<WordImportedBean>> modificaciones = null;
         LinkedHashSet<WordImportedBean> subtituloModificado = null;
-        WordImportedBean palabraImportada = null;
 
         try {
             //cargamos el fichero CSV
@@ -113,20 +98,18 @@ public class UtilsCapCut {
                 subtituloModificado = new LinkedHashSet<>();
 
                 //Comprobamos si las palabras vienen bien informadas
-                int totalPalabras = record.size() - Constants.POSICION_PRIMERA_PALABRA;
-
                 for (int i = Constants.POSICION_PRIMERA_PALABRA; i < record.size(); i=i+2) {
 
                     if (StringUtils.isBlank(record.get(i))) {
                         log.info("Sin palabras");
                     } else {
-                        if (i + 1 > record.size() && record.get(i + 1) != null) {
+                        if ((i + 1) <= record.size() && record.get(i + 1) != null) {
                             subtituloModificado.add(new WordImportedBean(record.get(i), new BigDecimal(record.get(i + 1))));
                         } else {
                             subtituloModificado.add(new WordImportedBean(record.get(i), null));
                         }
                     }
-                } ;
+                }
                 modificaciones.put(record.get(Constants.POSICION_ID), subtituloModificado);
 
 
@@ -138,16 +121,4 @@ public class UtilsCapCut {
         return modificaciones;
     }
 
-    public static boolean verificaCapCut(CapCutSubtitles capcutsubtitles, Map<String, LinkedHashSet<WordImportedBean>> importSubtitles) {
-        return false;
-    }
-
-    public static void actualizaCatCut(Map<String, LinkedHashSet<WordImportedBean>> importSubtitles, CapCutSubtitles capcutsubtitles) {
-
-        for ( Subtitle subtitle: capcutsubtitles.getSubtitles()){
-            if (importSubtitles.containsKey(subtitle.getId())){
-                log.info("Encontrado");
-            }
-        }
-    }
 }
