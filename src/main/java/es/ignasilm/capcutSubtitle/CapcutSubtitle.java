@@ -95,17 +95,18 @@ public class CapcutSubtitle {
         JsonNode contenidoNode = null;
         Subtitle subtitle = null;
         int orden = 1;
+        String materialId = null;
 
         try {
             capcutsubtitles = new CapCutSubtitles();
-            capcutsubtitles.setSubtitles(new ArrayList<>());
+            capcutsubtitles.setSubtitles(new HashMap<>());
 
             ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(new File(fichero));
-            log.info("Documento cargado: " + jsonNode.size());
+            JsonNode jsonRootNode = objectMapper.readTree(new File(fichero));
+            log.info("Documento cargado: " + jsonRootNode.size());
 
             //recuperamos el nodo materias de extra_info
-            JsonNode materialsNode = jsonNode.get("materials");
+            JsonNode materialsNode = jsonRootNode.get("materials");
             //recuperamos el nodo texts de materias
             JsonNode textsNode = materialsNode.get("texts");
 
@@ -144,8 +145,31 @@ public class CapcutSubtitle {
                 }
                 subtitle.setWords(listaPalabras);
 
-                capcutsubtitles.getSubtitles().add(subtitle);
+                capcutsubtitles.getSubtitles().put(subtitle.getId(),subtitle);
             }
+
+            //recuperamos el nodo tracks de extra_info
+            JsonNode tracksNode = jsonRootNode.get("tracks");
+            JsonNode materialIdNode = null;
+            //recuperamos el nodo segments de tracks
+            for (JsonNode segmentsNode : tracksNode) {
+                //recorremos los segmentos para buscar los que hemos añadido como subtitulos y ver la duracion real
+                for (JsonNode segmentNode : segmentsNode.get("segments")) {
+                    materialIdNode = segmentNode.findValue("material_id");
+                    if (materialIdNode != null) {
+                        log.info("Paso por un materialIdNode:" + materialIdNode);
+                        materialId = materialIdNode.textValue();
+
+                        if (capcutsubtitles.getSubtitles().containsKey(materialId)) {
+                            log.info("Encuentro el materialID entre los subtitulos:" + materialId);
+                            //Recupero la duracion total
+                            capcutsubtitles.getSubtitles().get(materialId).setDuracionSegment(segmentNode.get("target_timerange").get("duration").asLong());
+                            log.info("Lo he actualizado bien:" + materialId);
+                        }
+                    }
+                }
+            }
+
         } catch (Exception e) {
             log.error(("Se ha producido un error al leer el fichero: " + e.getMessage() ));
             throw new RuntimeException(e);
@@ -159,7 +183,7 @@ public class CapcutSubtitle {
 
         try {
             capcutsubtitles = new CapCutSubtitles();
-            capcutsubtitles.setSubtitles(new ArrayList<>());
+            capcutsubtitles.setSubtitles(new HashMap<>());
 
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonRootNode = objectMapper.readTree(new File(fichero));
@@ -207,17 +231,19 @@ public class CapcutSubtitle {
                         WordImportedBean nextPalabra = iterator.next();
                         //obtenemos el porcentaje y calculamos la duracion
                         porcentaje = nextPalabra.getPorcentaje().doubleValue();
+                        //sobreescribo la duracion total con la que viene del import
+                        duracionTotal = nextPalabra.getDuracionTotal().doubleValue();
                         duracionPalabra = Math.round((porcentaje*duracionTotal)/100d);
                         //añadimos a las listas el texto, inicio y fin
                         textArrayNode.add(nextPalabra.getText());
                         startTimeArrayNode.add(actualTime);
                         actualTime += Double.valueOf(duracionPalabra).longValue();
-                        if (iterator.hasNext()) {
+                        //if (iterator.hasNext()) {
                             endTimeArrayNode.add(actualTime);
-                        } else {
+                        //} else {
                             //por si acaso hay diferencia de decimales, asignamos a la ultima palabra el fin anterior
-                            endTimeArrayNode.add(Double.valueOf(endTime).longValue());
-                        }
+                            //endTimeArrayNode.add(Double.valueOf(endTime).longValue());
+                        //}
                     }
 
                 }

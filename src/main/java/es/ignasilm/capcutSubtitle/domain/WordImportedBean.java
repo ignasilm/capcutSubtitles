@@ -7,11 +7,13 @@ public class WordImportedBean {
     //bean con los datos de una palabra que tiene 3 propiedades: startTime, endTime y text
     private BigDecimal porcentaje;
     private String text;
+    private BigDecimal duracionTotal;
 
-    public WordImportedBean(String text, BigDecimal porcentaje) {
+    public WordImportedBean(String text, BigDecimal porcentaje, BigDecimal duracionTotal) {
 
         this.text = text;
         this.porcentaje = porcentaje;
+        this.duracionTotal = duracionTotal;
     }
 
     public BigDecimal getPorcentaje() {
@@ -29,5 +31,14 @@ public class WordImportedBean {
     public void setText(String text) {
         this.text = text;
     }
+
+    public BigDecimal getDuracionTotal() {
+        return duracionTotal;
+    }
+
+    public void setDuracionTotal(BigDecimal duracionTotal) {
+        this.duracionTotal = duracionTotal;
+    }
 }
+
 

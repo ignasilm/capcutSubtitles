@@ -48,6 +48,7 @@ public class UtilsCapCut {
         resultado.add(subtitle.getId());
         resultado.add(subtitle.getContent());
         resultado.add(duracionTotal);
+        resultado.add(subtitle.getDuracionSegment());
         for (WordBean wordBean : subtitle.getWords()) {
             duracionPalabra = wordBean.getEndTime().doubleValue() - wordBean.getStartTime().doubleValue();
             porcentaje = Math.round(duracionPalabra*10000d/duracionTotal)/100d;
@@ -59,7 +60,7 @@ public class UtilsCapCut {
 
     public static void export(CapCutSubtitles capcutsubtitles) {
 
-        capcutsubtitles.getSubtitles().forEach(linea -> {
+        capcutsubtitles.getSubtitles().forEach((clave,linea) -> {
             log.info(lineaExport(linea));
         });
     }
@@ -67,7 +68,7 @@ public class UtilsCapCut {
     public static void export2File(CapCutSubtitles capCutSubtitles, String exportFile) {
 
         try (CSVPrinter printer = new CSVPrinter(new FileWriter(exportFile), CSVFormat.EXCEL)) {
-            capCutSubtitles.getSubtitles().forEach(linea -> {
+            capCutSubtitles.getSubtitles().forEach((clave,linea) -> {
                 try {
                     printer.printRecord(recordExport(linea));
                 } catch (IOException e) {
@@ -104,9 +105,9 @@ public class UtilsCapCut {
                         log.info("Sin palabras");
                     } else {
                         if ((i + 1) <= record.size() && record.get(i + 1) != null) {
-                            subtituloModificado.add(new WordImportedBean(record.get(i), new BigDecimal(record.get(i + 1))));
+                            subtituloModificado.add(new WordImportedBean(record.get(i), new BigDecimal(record.get(i + 1)), new BigDecimal(record.get(Constants.POSICION_DURACION_TOTAL))));
                         } else {
-                            subtituloModificado.add(new WordImportedBean(record.get(i), null));
+                            subtituloModificado.add(new WordImportedBean(record.get(i), null, null));
                         }
                     }
                 }

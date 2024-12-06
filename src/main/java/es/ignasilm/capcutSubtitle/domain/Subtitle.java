@@ -9,6 +9,7 @@ public class Subtitle {
     Long end;
     List<WordBean> words;
     String content;
+    Long duracionSegment;
 
     public Integer getOrden() {
         return orden;
@@ -56,4 +57,14 @@ public class Subtitle {
     public void setContent(String content) {
         this.content = content;
     }
+
+    public Long getDuracionSegment() {
+        return duracionSegment;
+    }
+
+    public void setDuracionSegment(Long duracionSegment) {
+        this.duracionSegment = duracionSegment;
+    }
+
+
 }
